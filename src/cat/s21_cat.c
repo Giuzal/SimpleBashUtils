@@ -1,92 +1,99 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <string.h>
-
-typedef struct {
-    bool number_empty;
-    bool number_all;
-    bool show_endl;
-    bool squeeze;
-    bool show_tabs;
-    bool error;
-} CatInfo;
-
-bool PrintNoArgs(int fd, const char *name) {
-    char buf[1024];
-    ssize_t bytes_read;
-
-    while ((bytes_read = read(fd, buf, sizeof(buf))) > 0) {
-        if (fwrite(buf, 1, (size_t)bytes_read, stdout) != (size_t)bytes_read) {
-            fprintf(stderr, "%s: error writing to stdout\n", name);
-            return false;
-        }
-    }
-
-    if (bytes_read == -1) {
-        fprintf(stderr, "%s: error reading from file\n", name);
-        return false;
-    }
-
-    return true;
-}
-
-bool ParseArg(CatInfo *info, char *arg, char *name) {
-    if (*arg == '-') {
-        if (strcmp(arg, "-b") == 0) {
-            info->number_empty = true;
-        } else if (strcmp(arg, "-e") == 0) {
-            info->show_endl = true;
-        } else if (strcmp(arg, "-n") == 0) {
-            info->number_all = true;
-        } else if (strcmp(arg, "-s") == 0) {
-            info->squeeze = true;
-        } else if (strcmp(arg, "-t") == 0) {
-            info->show_tabs = true;
-        } else {
-            fprintf(stderr, "%s: invalid option -- '%s'\n", name, arg);
-            info->error = true;
-            return false;
-        }
-    } else {
-        info->error = true;
-        fprintf(stderr, "%s: invalid option -- '%s'\n", name, arg);
-        return false;
-    }
-
-    return true;
-}
-
-bool ProcessArgs(int argc, char *argv[]) {
-    CatInfo info = {0};
-
-    for (int i = 1; i < argc; ++i) {
-        if (argv[i][0] == '-') {
-            if (!ParseArg(&info, argv[i], argv[0])) {
-                return false;
-            }
-        } else {
-            int fd = open(argv[i], O_RDONLY);
-            if (fd == -1) {
-                fprintf(stderr, "%s: cannot open '%s': No such file or directory\n", argv[0], argv[i]);
-                info.error = true;
-            } else {
-                if (!PrintNoArgs(fd, argv[0])) {
-                    info.error = true;
-                }
-                close(fd);
-            }
-        }
-    }
-
-    return !info.error;
-}
+#include "s21_cat.h"
 
 int main(int argc, char *argv[]) {
-    if (argc == 1) {
-        return PrintNoArgs(STDIN_FILENO, argv[0]) ? 0 : 1;
-    } else {
-        return ProcessArgs(argc, argv) ? 0 : 1;
+  int rez = 0, b = 0, e = 0, n = 0, s = 0, t = 0, v = 0, exit = 0;
+  const char *short_options = "beEstTnv";
+  const struct option long_options[] = {
+      {"number-nonblank", no_argument, NULL, 'b'},
+      {"number", no_argument, NULL, 'n'},
+      {"squeeze-blank", no_argument, NULL, 's'},
+      {NULL, 0, NULL, 0}};
+  while ((rez = getopt_long(argc, argv, short_options, long_options, NULL)) !=
+         -1) {
+    switch (rez) {
+      case 'b':
+        b = 1;
+        break;
+      case 'e':
+        e = 1;
+        v = 1;
+        break;
+      case 'E':
+        e = 1;
+        break;
+      case 'n':
+        n = 1;
+        break;
+      case 's':
+        s = 1;
+        break;
+      case 't':
+        t = 1;
+        v = 1;
+        break;
+      case 'T':
+        t = 1;
+        break;
+      case 'v':
+        v = 1;
+        break;
+      default:
+        fprintf(stderr, "cat: illegal option -- %c\n", rez);
+        fprintf(stderr, "usage: cat [-benstuv] [file ...]\n");
+        exit = 1;
+        break;
     }
+  }
+  if (!exit) {
+    while (optind < argc) {
+      open_file(argv, b, e, n, s, t, v);
+      optind++;
+    }
+  }
+  return 0;
+}
+
+void open_file(char *argv[], int b, int e, int n, int s, int t, int v) {
+  FILE *fp = NULL;
+  if (b && n) n = 0;
+  fp = fopen(argv[optind], "r+");
+  if (!fp) {
+    fprintf(stderr, "cat: %s: %s\n", argv[optind], strerror(errno));
+  } else {
+    s21_cat(b, e, n, s, t, v, fp);
+    fclose(fp);
+  }
+}
+
+void s21_cat(int b, int e, int n, int s, int t, int v, FILE *fp) {
+  int current, prev = 1, temp = 0, count = 1, first = 1;
+  while ((current = fgetc(fp)) != EOF) {
+    if (s) {
+      if (current == '\n') temp++;
+      if (current != '\n') temp = 0;
+    }
+    if (current == '\n' && (!s || temp < 3)) {
+      if ((first == 1 && n) || (n && prev == '\n')) printf("%6d\t", count++);
+      if (e) {
+        if ((prev == '\n' || first == 1) && b) printf("      	");
+        printf("$");
+      }
+      printf("%c", current);
+    }
+    if (current != '\n') {
+      if ((prev == '\n' || first == 1) && (n || b)) printf("%6d\t", count++);
+      if (current < 32 && current != 9 && current != 10 && v)
+        printf("^%c", current + 64);
+      else if (current > 127 && current < 160 && v)
+        printf("M-^%c", current - 64);
+      else if (current == 127 && v)
+        printf("^%c", current - 64);
+      else if (current == '\t' && t)
+        printf("^I");
+      else
+        printf("%c", current);
+    }
+    prev = current;
+    first = 0;
+  }
 }
