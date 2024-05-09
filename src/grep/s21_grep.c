@@ -1,15 +1,7 @@
 #include "s21_grep.h"
 
-//-l, -h, -s, -e флаг дописать
 
-typedef struct {
-  int regex_flag;
-  bool invert;
-  bool count;
-  bool filesMatch;
-  bool numberLine;
-  bool printMatched;
-} Flags;
+//-l, -h, -s, -e флаг дописать
 
 Flags GrepReadFlags(int argc, char *argv[]) {
   Flags flags = {0, false, false, false, false, false};
