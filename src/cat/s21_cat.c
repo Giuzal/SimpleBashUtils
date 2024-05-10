@@ -2,8 +2,7 @@
 
 int main(int argc, char *argv[]) {
     int result = 0;
-    struct Cats s = {0};
-    const char *shorts = "beEstTnv";
+    struct Option option = {0};
     const struct option longs[] = {
         {"number-nonblank", no_argument, NULL, 'b'},
         {"number", no_argument, NULL, 'n'},
@@ -11,55 +10,65 @@ int main(int argc, char *argv[]) {
         {NULL, 0, NULL, 0}
     };
 
-    struct ShortOption shortOpts[] = {
-        {'b', &s.b},
-        {'e', &s.e},
-        {'E', &s.e},
-        {'n', &s.n},
-        {'s', &s.s},
-        {'t', &s.t},
-        {'T', &s.t},
-        {'v', &s.v}
-    };
+    const char *shorts = "beEstTnv";
 
     while ((result = getopt_long(argc, argv, shorts, longs, NULL)) != -1) {
-        size_t i;
-        for (i = 0; i < sizeof(shortOpts) / sizeof(shortOpts[0]); i++) {
-            if (result == shortOpts[i].option) {
-                *(shortOpts[i].flag) = 1;
-                break;
-            }
-        }
         if (result == '?') {
             fprintf(stderr, "Illegal option. Use: cat [-benstuv] [file ...]\n");
-            s.exitFlag = 1;
+            option.exitFlag = 1;
+        } else {
+            option.shortOption = result;
+            switch (result) {
+                case 'b':
+                    option.b = 1;
+                    break;
+                case 'e':
+                case 'E':
+                    option.e = 1;
+                    break;
+                case 'n':
+                    option.n = 1;
+                    break;
+                case 's':
+                    option.s = 1;
+                    break;
+                case 't':
+                case 'T':
+                    option.t = 1;
+                    break;
+                case 'v':
+                    option.v = 1;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
-    if (!s.exitFlag) {
+    if (!option.exitFlag) {
         for (int i = optind; i < argc; i++) {
-            processFile(argv, &s);
+            processFile(argv, &option);
         }
     }
 
     return 0;
 }
 
-void processFile(char *argv[], struct Cats *s) {
+void processFile(char *argv[], struct Option *option) {
     FILE *file = NULL;
-    if (s->b && s->n) s->n = 0;
+    if (option->b && option->n) option->n = 0;
     file = fopen(argv[optind], "r+");
     if (!file) {
         fprintf(stderr, "cat: %s: %s\n", argv[optind], strerror(errno));
         fprintf(stderr, "Error opening file.\n");
-        s->exitFlag = 1;
+        option->exitFlag = 1;
     } else {
-        s21_cat(s->b, s->e, s->n, s->s, s->t, s->v, file);
+        printFile(option->b, option->e, option->n, option->s, option->t, option->v, file);
         fclose(file);
     }
 }
 
-void s21_cat(int b, int e, int n, int s, int t, int v, FILE *file) {
+void printFile(int b, int e, int n, int s, int t, int v, FILE *file) {
     int ch, prev_ch = 1, number_of_empty = 0, lineCount = 1, firstLine = 1;
     while ((ch = fgetc(file)) != EOF) {
         if (s) {

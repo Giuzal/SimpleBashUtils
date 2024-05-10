@@ -7,12 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct ShortOption {
-    char option;
+struct Option {
+    char shortOption;
+    char *longOption;
     int *flag;
-};
-
-struct Cats {
     int b;
     int e;
     int n;
@@ -22,7 +20,6 @@ struct Cats {
     int exitFlag;
 };
 
-void processFile(char *argv[], struct Cats *s);
-void s21_cat(int b, int e, int n, int s, int t, int v, FILE *file);
-
+void processFile(char *argv[], struct Option *option);
+void printFile(int b, int e, int n, int s, int t, int v, FILE *file);
 #endif  
