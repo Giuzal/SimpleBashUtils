@@ -23,6 +23,9 @@ int main(int argc, char *argv[]) {
                     option.b = 1;
                     break;
                 case 'e':
+                    option.v = 1;
+                    option.e = 1;
+                    break;
                 case 'E':
                     option.e = 1;
                     break;
@@ -33,6 +36,9 @@ int main(int argc, char *argv[]) {
                     option.s = 1;
                     break;
                 case 't':
+                    option.t = 1;
+                    option.v = 1;
+                    break;
                 case 'T':
                     option.t = 1;
                     break;

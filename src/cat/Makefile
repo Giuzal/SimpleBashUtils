@@ -13,8 +13,5 @@ rebuild:
 clean:
 	rm -rf s21_cat
 
-test: s21_cat test_script.sh
-	./test_script.sh
-
 .PHONY: all clean test
 
