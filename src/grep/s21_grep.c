@@ -1,14 +1,45 @@
 #include "s21_grep.h"
 
 
-//-l, -h, -s, -e флаг дописать
+//-l, -h, -s, -e флаг дописать, Обработку ошибок согласно реальному грепу
+// убрать все глобальные переменные:errno
+
+void *xmalloc(size_t size){
+  void *temp;
+  temp = malloc(size);
+  if (!temp)
+    exit(errno);
+  return temp;
+}
+
+void *xrealloc(void *block, size_t size){
+  void *temp;
+  temp = realloc(block, size);
+  if (!temp)
+    exit(errno);
+  return temp;
+}
 
 Flags GrepReadFlags(int argc, char *argv[]) {
   Flags flags = {0, false, false, false, false, false};
   int currentFlag = getopt(argc, argv, "eivclno");
+  flags.pattern = xmalloc(2);
+  flags.pattern[0] = '[';
+  flags.pattern[1] = '\0';
+  size_t pattern_size = 1;
+  size_t temp_size = 0;
   for (; currentFlag != -1; currentFlag = getopt(argc, argv, "eivclno")) {
-    switch (currentFlag) {
+    switch (currentFlag) { 
       case 'e':
+        temp_size = strlen(optarg);
+        flags.pattern = xrealloc(flags.pattern, pattern_size + temp_size + 3);
+        flags.pattern[pattern_size] = '(';
+        ++pattern_size;
+        memcpy(flags.pattern + pattern_size + 1, optarg, temp_size);
+        pattern_size += temp_size;
+        flags.pattern[pattern_size] = ')';
+        ++pattern_size;
+        flags.pattern[pattern_size] = '\0';
         flags.regex_flag |= REG_EXTENDED;
         break;
       case 'i':
