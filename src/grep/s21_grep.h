@@ -22,7 +22,7 @@ typedef struct {
 
 Flags GrepReadFlags(int argc, char *argv[]);
 void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg, int count_file);
-void GrepFile(FILE *file, Flags flags, regex_t *preg);
+void GrepFile(FILE *file, Flags flags, regex_t *preg, char *filename);
 void Grep(int argc, char *argv[], Flags flags);
 
 

@@ -53,30 +53,46 @@ void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg, int
   free(line);
 }
 
-void GrepFile(FILE *file, Flags flags, regex_t *preg) {
+void GrepFile(FILE *file, Flags flags, regex_t *preg, char *filename) {
   (void)flags;
   char *line = 0;
   size_t length = 0;
   regmatch_t match;
+  int count = 0;
   while (getline(&line, &length, file) > 0) {
+    ++count;
     if (flags.invert) {
       if (regexec(preg, line, 1, &match, 0)) {
         if (flags.printMatched);
-          else 
-             printf("%s", line);
+          else {
+            if (flags.numberLine)
+              printf("%s:%i:%s", filename, count, line);
+            else
+              printf("%s", line);
+          }
       }
     } else {
       if (!regexec(preg, line, 1, &match, 0)) {
         if (flags.printMatched){
-          printf("%.*s\n", match.rm_eo - match.rm_so, line + match.rm_so);
+           if (flags.numberLine)
+              printf("%s:%i:%.*s\n", filename, count, match.rm_eo - match.rm_so, line + match.rm_so);
+          else
+            printf("%.*s\n", match.rm_eo - match.rm_so, line + match.rm_so);
           char *remaining = line + match.rm_eo;
           while (!regexec(preg, remaining, 1, &match, 0)){
-            printf("%.*s\n", match.rm_eo - match.rm_so, remaining + match.rm_so);
-              remaining = remaining + match.rm_eo;
+            if (flags.numberLine)
+              printf("%s:%i:%.*s\n", filename, count, match.rm_eo - match.rm_so, line + match.rm_so);
+            else
+              printf("%.*s\n", match.rm_eo - match.rm_so, line + match.rm_so);
+            remaining = remaining + match.rm_eo;
           }
         }
-          else
-            printf("%s", line);
+          else{
+             if (flags.numberLine)
+                printf("%s:%i:%s", filename, count, line);
+              else
+                printf("%s", line);
+          }
       }
     }
   }
@@ -115,7 +131,7 @@ void Grep(int argc, char *argv[], Flags flags) {
     if (flags.count) {
       GrepCount(file, *filename, flags, preg, count);
     } else
-      GrepFile(file, flags, preg);
+      GrepFile(file, flags, preg, *filename);
     fclose(file);
   }
 }
